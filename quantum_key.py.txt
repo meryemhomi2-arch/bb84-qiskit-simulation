@@ -1,0 +1,44 @@
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+n_bits = 100
+eve_present = True
+alice_bits = np.random.randint(2, size=n_bits)
+alice_bases = np.random.randint(2, size=n_bits)
+bob_bases = np.random.randint(2, size=n_bits)
+eve_bases = np.random.randint(2, size=n_bits)
+simulator = AerSimulator()
+bob_results = []
+for i in range(n_bits):
+    qc = QuantumCircuit(1, 1)
+    if alice_bits[i] == 1:
+        qc.x(0)
+    if alice_bases[i] == 1:
+        qc.h(0)
+    if eve_present:
+        if eve_bases[i] == 1:
+            qc.h(0)
+        qc.measure(0, 0)
+        qc.reset(0)
+        if int(list(simulator.run(qc, shots=1).result().get_counts().keys())[0]) == 1:
+            qc.x(0)
+        if eve_bases[i] == 1:
+            qc.h(0)
+    if bob_bases[i] == 1:
+        qc.h(0)
+    qc.measure(0, 0)
+    result = simulator.run(qc, shots=1).result()
+    measured_bit = int(list(result.get_counts().keys())[0])
+    bob_results.append(measured_bit)
+# Sifting
+alice_key = []
+bob_key = []
+for i in range(n_bits):
+    if alice_bases[i] == bob_bases[i]:
+        alice_key.append(alice_bits[i])
+        bob_key.append(bob_results[i])
+alice_key = np.array(alice_key)
+bob_key = np.array(bob_key)
+qber = np.sum(alice_key != bob_key) / len(alice_key)
+print("Longueur de la clé finale :", len(alice_key))
+print("QBER =", qber)
